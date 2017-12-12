@@ -1,27 +1,33 @@
 (function () {
-    
+
     var codeGenerator = (typeof eval("(function () {})") == "function") ?
-        function (code) { return code; } :
-        function (code) { return "false || " + code; };
-        
+        function (code) {
+            return code;
+        } :
+        function (code) {
+            return "false || " + code;
+        };
+
     // support string type only.
     var stringify = (typeof JSON !== "undefined" && JSON.stringify) ?
-        function (s) { return JSON.stringify(s); } :
+        function (s) {
+            return JSON.stringify(s);
+        } :
         (function () {
             // Implementation comes from JSON2 (http://www.json.org/js.html)
-        
+
             var escapable = /[\\\"\x00-\x1f\x7f-\x9f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g;
-            
+
             var meta = {    // table of character substitutions
                 '\b': '\\b',
                 '\t': '\\t',
                 '\n': '\\n',
                 '\f': '\\f',
                 '\r': '\\r',
-                '"' : '\\"',
+                '"': '\\"',
                 '\\': '\\\\'
             }
-            
+
             return function (s) {
                 // If the string contains no control characters, no quote characters, and no
                 // backslash characters, then we can safely slap some quotes around it.
@@ -32,33 +38,34 @@
                 return escapable.test(s) ? '"' + s.replace(escapable, function (a) {
                     var c = meta[a];
                     return typeof c === 's' ? c :
-                        '\\u' + ('0000' + a.charCodeAt(0).toString(16)).slice(-4);
+                    '\\u' + ('0000' + a.charCodeAt(0).toString(16)).slice(-4);
                 }) + '"' : '"' + s + '"';
             };
         })();
-    
+
     // seed defined in global
     if (typeof __jscex__tempVarSeed === "undefined") {
         __jscex__tempVarSeed = 0;
     }
 
     var init = function (root) {
-    
+
         if (root.modules["jit"]) {
             return;
         }
-    
+
         function JscexTreeGenerator(binder) {
             this._binder = binder;
             this._root = null;
         }
+
         JscexTreeGenerator.prototype = {
 
             generate: function (ast) {
 
                 var params = ast[2], statements = ast[3];
 
-                this._root = { type: "delay", stmts: [] };
+                this._root = {type: "delay", stmts: []};
 
                 this._visitStatements(statements, this._root.stmts);
 
@@ -106,7 +113,7 @@
                                     expression: expr[2][0],
                                     argName: name,
                                     assignee: null
-                                };                            
+                                };
                             }
                         }
                     }
@@ -131,7 +138,7 @@
                 if (arguments.length <= 2) index = 0;
 
                 if (index >= statements.length) {
-                    stmts.push({ type: "normal" });
+                    stmts.push({type: "normal"});
                     return this;
                 }
 
@@ -139,7 +146,7 @@
                 var bindInfo = this._getBindInfo(currStmt);
 
                 if (bindInfo) {
-                    var bindStmt = { type: "bind", info: bindInfo };
+                    var bindStmt = {type: "bind", info: bindInfo};
                     stmts.push(bindStmt);
 
                     if (bindInfo.assignee != "return") {
@@ -151,10 +158,10 @@
                     var type = currStmt[0];
                     if (type == "return" || type == "break" || type == "continue" || type == "throw") {
 
-                        stmts.push({ type: type, stmt: currStmt });
+                        stmts.push({type: type, stmt: currStmt});
 
                     } else if (type == "if" || type == "try" || type == "for" || type == "do"
-                               || type == "while" || type == "switch" || type == "for-in") {
+                        || type == "while" || type == "switch" || type == "for-in") {
 
                         var newStmt = this._visit(currStmt);
 
@@ -169,8 +176,8 @@
 
                                 var combineStmt = {
                                     type: "combine",
-                                    first: { type: "delay", stmts: [newStmt] },
-                                    second: { type: "delay", stmts: [] }
+                                    first: {type: "delay", stmts: [newStmt]},
+                                    second: {type: "delay", stmts: []}
                                 };
                                 stmts.push(combineStmt);
 
@@ -180,7 +187,7 @@
 
                     } else {
 
-                        stmts.push({ type: "raw", stmt: currStmt });
+                        stmts.push({type: "raw", stmt: currStmt});
 
                         this._visitStatements(statements, stmts, index + 1);
                     }
@@ -253,24 +260,24 @@
                     this._visitBody(body, bodyStmts);
 
                     if (this._noBinding(bodyStmts)) {
-                        return { type: "raw", stmt: ast };
+                        return {type: "raw", stmt: ast};
                     }
 
-                    var delayStmt = { type: "delay", stmts: [] };
-            
+                    var delayStmt = {type: "delay", stmts: []};
+
                     var setup = ast[1];
                     if (setup) {
-                        delayStmt.stmts.push({ type: "raw", stmt: setup });
+                        delayStmt.stmts.push({type: "raw", stmt: setup});
                     }
 
-                    var loopStmt = { type: "loop", bodyFirst: false, bodyStmt: { type: "delay", stmts: bodyStmts } };
+                    var loopStmt = {type: "loop", bodyFirst: false, bodyStmt: {type: "delay", stmts: bodyStmts}};
                     delayStmt.stmts.push(loopStmt);
-                    
+
                     var condition = ast[2];
                     if (condition) {
                         loopStmt.condition = condition;
                     }
-                    
+
                     var update = ast[3];
                     if (update) {
                         loopStmt.update = update;
@@ -282,39 +289,39 @@
                 "for-in": function (ast) {
 
                     var body = ast[4];
-                    
+
                     var bodyStmts = [];
                     this._visitBody(body, bodyStmts);
 
                     if (this._noBinding(bodyStmts)) {
-                        return { type: "raw", stmt: ast };
+                        return {type: "raw", stmt: ast};
                     }
-                
+
                     var id = (__jscex__tempVarSeed++);
                     var keysVar = "$$_keys_$$_" + id;
                     var indexVar = "$$_index_$$_" + id;
                     // var memVar = "$$_mem_$$_" + id;
 
-                    var delayStmt = { type: "delay", stmts: [] };
+                    var delayStmt = {type: "delay", stmts: []};
 
                     // var members = Jscex._forInKeys(obj);
                     var keysAst = root.parse("var " + keysVar + " = Jscex._forInKeys(obj);")[1][0];
                     keysAst[1][0][1][2][0] = ast[3]; // replace obj with real AST;
-                    delayStmt.stmts.push({ type: "raw", stmt: keysAst });
+                    delayStmt.stmts.push({type: "raw", stmt: keysAst});
 
                     /*
-                    // var members = [];
-                    delayStmt.stmts.push({
-                        type: "raw",
-                        stmt: uglifyJS.parse("var " + membersVar + " = [];")[1][0]
-                    });
-                    
-                    // for (var mem in obj) members.push(mem);
-                    var keysAst = uglifyJS.parse("for (var " + memVar +" in obj) " + membersVar + ".push(" + memVar + ");")[1][0];
-                    keysAst[3] = ast[3]; // replace the "obj" with real AST.
-                    delayStmt.stmts.push({ type : "raw", stmt: keysAst});
-                    */
-                    
+                     // var members = [];
+                     delayStmt.stmts.push({
+                     type: "raw",
+                     stmt: uglifyJS.parse("var " + membersVar + " = [];")[1][0]
+                     });
+
+                     // for (var mem in obj) members.push(mem);
+                     var keysAst = uglifyJS.parse("for (var " + memVar +" in obj) " + membersVar + ".push(" + memVar + ");")[1][0];
+                     keysAst[3] = ast[3]; // replace the "obj" with real AST.
+                     delayStmt.stmts.push({ type : "raw", stmt: keysAst});
+                     */
+
                     // var index = 0;
                     delayStmt.stmts.push({
                         type: "raw",
@@ -332,7 +339,7 @@
                         bodyFirst: false,
                         update: update,
                         condition: condition,
-                        bodyStmt: { type: "delay", stmts: [] }
+                        bodyStmt: {type: "delay", stmts: []}
                     };
                     delayStmt.stmts.push(loopStmt);
 
@@ -361,10 +368,10 @@
                     this._visitBody(body, bodyStmts);
 
                     if (this._noBinding(bodyStmts)) {
-                        return { type: "raw", stmt: ast }
+                        return {type: "raw", stmt: ast}
                     }
 
-                    var loopStmt = { type: "loop", bodyFirst: false, bodyStmt: { type: "delay", stmts: bodyStmts } };
+                    var loopStmt = {type: "loop", bodyFirst: false, bodyStmt: {type: "delay", stmts: bodyStmts}};
 
                     var condition = ast[1];
                     loopStmt.condition = condition;
@@ -379,10 +386,10 @@
                     this._visitBody(body, bodyStmts);
 
                     if (this._noBinding(bodyStmts)) {
-                        return { type: "raw", stmt: ast };
+                        return {type: "raw", stmt: ast};
                     }
 
-                    var loopStmt = { type: "loop", bodyFirst: true, bodyStmt: { type: "delay", stmts: bodyStmts } };
+                    var loopStmt = {type: "loop", bodyFirst: true, bodyStmt: {type: "delay", stmts: bodyStmts}};
 
                     var condition = ast[1];
                     loopStmt.condition = condition;
@@ -393,11 +400,11 @@
                 "switch": function (ast) {
                     var noBinding = true;
 
-                    var switchStmt = { type: "switch", item: ast[1], caseStmts: [] };
+                    var switchStmt = {type: "switch", item: ast[1], caseStmts: []};
 
                     var cases = ast[2];
-                    for (var i = 0; i < cases.length; i++) {                    
-                        var caseStmt = { item: cases[i][0], stmts: [] };
+                    for (var i = 0; i < cases.length; i++) {
+                        var caseStmt = {item: cases[i][0], stmts: []};
                         switchStmt.caseStmts.push(caseStmt);
 
                         var statements = this._collectCaseStatements(cases, i);
@@ -406,7 +413,7 @@
                     }
 
                     if (noBinding) {
-                        return { type: "raw", stmt: ast };
+                        return {type: "raw", stmt: ast};
                     } else {
                         return switchStmt;
                     }
@@ -416,12 +423,12 @@
 
                     var noBinding = true;
 
-                    var ifStmt = { type: "if", conditionStmts: [] };
+                    var ifStmt = {type: "if", conditionStmts: []};
 
                     var currAst = ast;
                     while (true) {
                         var condition = currAst[1];
-                        var condStmt = { cond: condition, stmts: [] };
+                        var condStmt = {cond: condition, stmts: []};
                         ifStmt.conditionStmts.push(condStmt);
 
                         var thenPart = currAst[2];
@@ -436,18 +443,18 @@
                             break;
                         }
                     }
-        
+
                     var elsePart = currAst[3];
                     if (elsePart) {
                         ifStmt.elseStmts = [];
 
                         this._visitBody(elsePart, ifStmt.elseStmts);
-                        
+
                         noBinding = noBinding && this._noBinding(ifStmt.elseStmts);
                     }
 
                     if (noBinding) {
-                        return { type: "raw", stmt: ast };
+                        return {type: "raw", stmt: ast};
                     } else {
                         return ifStmt;
                     }
@@ -461,8 +468,8 @@
 
                     var noBinding = this._noBinding(bodyStmts)
 
-                    var tryStmt = { type: "try", bodyStmt: { type: "delay", stmts: bodyStmts } };
-                    
+                    var tryStmt = {type: "try", bodyStmt: {type: "delay", stmts: bodyStmts}};
+
                     var catchClause = ast[2];
                     if (catchClause) {
                         var exVar = catchClause[0];
@@ -476,7 +483,7 @@
 
                     var finallyStatements = ast[3];
                     if (finallyStatements) {
-                        tryStmt.finallyStmt = { type: "delay", stmts: [] };
+                        tryStmt.finallyStmt = {type: "delay", stmts: []};
 
                         this._visitStatements(finallyStatements, tryStmt.finallyStmt.stmts);
 
@@ -484,7 +491,7 @@
                     }
 
                     if (noBinding) {
-                        return { type: "raw", stmt: ast };
+                        return {type: "raw", stmt: ast};
                     } else {
                         return tryStmt;
                     }
@@ -500,6 +507,7 @@
             this._indentLevel = 0;
             this._builderVar = "$$_builder_$$_" + (__jscex__tempVarSeed++);
         }
+
         CodeGenerator.prototype = {
             _write: function (s) {
                 this._buffer.push(s);
@@ -535,7 +543,7 @@
                     ._writeLine("return " + this._builderVar + ".Start(this,");
                 this._indentLevel++;
 
-                this._pos = { };
+                this._pos = {};
 
                 this._writeIndents()
                     ._visitJscex(jscexAst)
@@ -627,7 +635,7 @@
                 var funcName = ast[1] || "";
                 var args = ast[2];
                 var statements = ast[3];
-                
+
                 this._writeLine("function " + funcName + "(" + args.join(", ") + ") {")
                 this._indentLevel++;
 
@@ -764,7 +772,7 @@
 
                     for (var i = 0; i < ast.conditionStmts.length; i++) {
                         var stmt = ast.conditionStmts[i];
-                        
+
                         this._write("if (")._visitRaw(stmt.cond)._writeLine(") {");
                         this._indentLevel++;
 
@@ -891,7 +899,7 @@
                 "seq": function (ast) {
                     for (var i = 1; i < ast.length; i++) {
                         this._visitRaw(ast[i]);
-                        if (i < ast.length - 1) this._write(", "); 
+                        if (i < ast.length - 1) this._write(", ");
                     }
                 },
 
@@ -995,7 +1003,7 @@
                 },
 
                 "call": function (ast) {
-                
+
                     if (_isJscexPattern(ast)) {
                         var indent = this._indent + this._indentLevel * 4;
                         var newCode = _compileJscexPattern(ast, indent);
@@ -1004,7 +1012,7 @@
 
                         var invalidBind = (ast[1][0] == "name") && (ast[1][1] == this._binder);
                         if (invalidBind) {
-                            this._pos = { inFunction: true };
+                            this._pos = {inFunction: true};
                             this._buffer = [];
                         }
 
@@ -1035,19 +1043,19 @@
                     } else {
                         this._writeLine("{");
                         this._indentLevel++;
-                        
+
                         for (var i = 0; i < items.length; i++) {
                             this._writeIndents()
                                 ._write(stringify(items[i][0]) + ": ")
                                 ._visitRaw(items[i][1]);
-                            
+
                             if (i < items.length - 1) {
                                 this._writeLine(",");
                             } else {
                                 this._writeLine("");
                             }
                         }
-                        
+
                         this._indentLevel--;
                         this._writeIndents()._write("}");
                     }
@@ -1092,10 +1100,10 @@
                         if (value) this._write(" ")._visitRaw(value);
                         this._write(";");
                     } else {
-                        this._write("return ")._visitJscex({ type: "return", stmt: ast })._write(";");
+                        this._write("return ")._visitJscex({type: "return", stmt: ast})._write(";");
                     }
                 },
-                
+
                 "for": function (ast) {
                     this._write("for (");
 
@@ -1137,7 +1145,7 @@
                     } else {
                         this._visitRaw(declare);
                     }
-                    
+
                     this._write(" in ")._visitRaw(ast[3])._write(") ");
 
                     var body = ast[4];
@@ -1214,7 +1222,7 @@
                     if (this._pos.inLoop || this._pos.inSwitch) {
                         this._write("break;");
                     } else {
-                        this._write("return ")._visitJscex({ type: "break", stmt: ast })._write(";");
+                        this._write("return ")._visitJscex({type: "break", stmt: ast})._write(";");
                     }
                 },
 
@@ -1222,7 +1230,7 @@
                     if (this._pos.inLoop) {
                         this._write("continue;");
                     } else {
-                        this._write("return ")._visitJscex({ type: "continue", stmt: ast })._write(";");
+                        this._write("return ")._visitJscex({type: "continue", stmt: ast})._write(";");
                     }
                 },
 
@@ -1231,7 +1239,7 @@
                     if (pos.inTry || pos.inFunction) {
                         this._write("throw ")._visitRaw(ast[1])._write(";");
                     } else {
-                        this._write("return ")._visitJscex({ type: "throw", stmt: ast })._write(";");
+                        this._write("return ")._visitJscex({type: "throw", stmt: ast})._write(";");
                     }
                 },
 
@@ -1271,7 +1279,7 @@
 
                         this._visitRawStatements(finallyStatements);
                         this._indentLevel--;
-                    }                
+                    }
 
                     this._writeIndents()
                         ._write("}");
@@ -1311,7 +1319,7 @@
 
         function _isJscexPattern(ast) {
             if (ast[0] != "call") return false;
-            
+
             var evalName = ast[1];
             if (evalName[0] != "name" || evalName[1] != "eval") return false;
 
@@ -1332,7 +1340,7 @@
 
             return true;
         }
-        
+
         function _compileJscexPattern(ast, indent) {
 
             var builderName = ast[2][0][2][0][1];
@@ -1347,7 +1355,7 @@
 
             return newCode;
         }
-        
+
         function compile(builderName, func) {
 
             var funcCode = func.toString();
@@ -1359,24 +1367,25 @@
             var newCode = _compileJscexPattern(evalAst, 0);
 
             root.logger.debug(funcCode + "\n\n>>>\n\n" + newCode);
-            
+
             return codeGenerator(newCode);
         };
 
         root.compile = compile;
-        
+
         root.modules["jit"] = true;
     }
-    
+
     var isCommonJS = (typeof require !== "undefined" && typeof module !== "undefined" && module.exports);
     var isAmd = (typeof define !== "undefined" && define.amd);
-    
+
     if (isCommonJS) {
         module.exports.init = function (root) {
             if (!root.modules["parser"]) {
                 require("./jscex-parser").init(root);
-            };
-            
+            }
+            ;
+
             init(root);
         }
     } else if (isAmd) {
@@ -1386,7 +1395,7 @@
                     if (!root.modules["parser"]) {
                         parser.init(root);
                     }
-                    
+
                     init(root);
                 }
             };
@@ -1395,7 +1404,7 @@
         if (typeof Jscex === "undefined") {
             throw new Error('Missing root object, please load "jscex" module first.');
         }
-        
+
         if (!Jscex.modules["parser"]) {
             throw new Error('Missing essential components, please initialize "parser" module first.');
         }
